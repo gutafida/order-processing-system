@@ -6,6 +6,7 @@ import com.gutafida.orderservice.dto.OrderResponse;
 import com.gutafida.orderservice.entity.Order;
 import com.gutafida.orderservice.entity.OrderItem;
 import com.gutafida.orderservice.enums.OrderStatus;
+import com.gutafida.orderservice.exception.ResourceNotFoundException;
 import com.gutafida.orderservice.repository.OrderRepository;
 import org.springframework.stereotype.Service;
 
@@ -49,6 +50,14 @@ public class OrderService {
         Order savedOrder = orderRepository.save(order);
         return mapToResponse(savedOrder);
     }
+
+
+    public OrderResponse getOrderById(Long id){
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + id));
+        return mapToResponse(order);
+    }
+
 
     private BigDecimal calculateSubtotal(
             BigDecimal unitPrice, Integer quantity){

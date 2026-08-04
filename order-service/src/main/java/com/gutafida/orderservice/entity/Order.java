@@ -50,4 +50,15 @@ public class Order {
         item.setOrder(null);
     }
 
+    @PrePersist
+    public void onCreate(){
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    public void onUpdate(){
+        updatedAt = LocalDateTime.now();
+    }
+
 }

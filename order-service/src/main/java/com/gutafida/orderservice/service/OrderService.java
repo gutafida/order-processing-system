@@ -11,30 +11,28 @@ import com.gutafida.orderservice.repository.OrderRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class OrderService {
+
     private final OrderRepository orderRepository;
 
     public OrderService(OrderRepository orderRepository) {
         this.orderRepository = orderRepository;
     }
 
-
-    public OrderResponse createOrder(CreateOrderRequest request){
+    public OrderResponse createOrder(CreateOrderRequest request) {
         Order order = new Order();
+
         order.setOrderNumber(generateOrderNumber());
         order.setCustomerId(request.customerId());
         order.setStatus(OrderStatus.PENDING);
-        order.setCreatedAt(LocalDateTime.now());
-        //order.setUpdatedAt(LocalDateTime.now());
 
-        for (OrderItemRequest itemRequest : request.items()){
+        for (OrderItemRequest itemRequest : request.items()) {
             BigDecimal subtotal = calculateSubtotal(
                     itemRequest.unitPrice(),
                     itemRequest.quantity()
-
             );
 
             OrderItem item = OrderItem.builder()
@@ -44,36 +42,73 @@ public class OrderService {
                     .unitPrice(itemRequest.unitPrice())
                     .subtotal(subtotal)
                     .build();
+
             order.addItem(item);
         }
+
         order.setTotalAmount(calculateTotal(order));
+
         Order savedOrder = orderRepository.save(order);
+
         return mapToResponse(savedOrder);
     }
 
-
-    public OrderResponse getOrderById(Long id){
+    public OrderResponse getOrderById(Long id) {
         Order order = orderRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + id));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Order not found with id: " + id
+                        )
+                );
+
         return mapToResponse(order);
     }
 
+    public List<OrderResponse> getAllOrders() {
+        return orderRepository.findAll()
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    public OrderResponse cancelOrder(Long id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Order not found with id: " + id
+                        )
+                );
+
+        if (order.getStatus() == OrderStatus.CANCELLED) {
+            return mapToResponse(order);
+        }
+
+        order.setStatus(OrderStatus.CANCELLED);
+
+        Order savedOrder = orderRepository.save(order);
+
+        return mapToResponse(savedOrder);
+    }
 
     private BigDecimal calculateSubtotal(
-            BigDecimal unitPrice, Integer quantity){
+            BigDecimal unitPrice,
+            Integer quantity
+    ) {
         return unitPrice.multiply(BigDecimal.valueOf(quantity));
     }
 
-    private BigDecimal calculateTotal(Order order){
-        return order.getItems().stream()
+    private BigDecimal calculateTotal(Order order) {
+        return order.getItems()
+                .stream()
                 .map(OrderItem::getSubtotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
-    private String generateOrderNumber(){
+
+    private String generateOrderNumber() {
         return "ORD-" + System.currentTimeMillis();
     }
 
-    private OrderResponse mapToResponse(Order order){
+    private OrderResponse mapToResponse(Order order) {
         return new OrderResponse(
                 order.getId(),
                 order.getOrderNumber(),

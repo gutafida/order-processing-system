@@ -23,7 +23,7 @@ public class PaymentService {
                 .orderId(request.orderId())
                 .amount(request.amount())
                 .paymentMethod(request.paymentMethod())
-                .status(PaymentStatus.PENDING)
+                .status(PaymentStatus.COMPLETED)
                 .build();
         Payment saved = paymentRepository.save(payment);
         return mapToResponse(payment);

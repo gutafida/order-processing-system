@@ -9,7 +9,7 @@ public record PaymentResponse(
         Long orderId,
         BigDecimal amount,
         String paymentMethod,
-        String status,
+        String paymentStatus,
         LocalDateTime createdAt
 ) {
 }

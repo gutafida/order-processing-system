@@ -1,5 +1,8 @@
 package com.gutafida.orderservice.service;
 
+import com.gutafida.orderservice.client.PaymentClient;
+import com.gutafida.orderservice.client.dto.PaymentRequest;
+import com.gutafida.orderservice.client.dto.PaymentResponse;
 import com.gutafida.orderservice.dto.CreateOrderRequest;
 import com.gutafida.orderservice.dto.OrderItemRequest;
 import com.gutafida.orderservice.dto.OrderResponse;
@@ -17,9 +20,11 @@ import java.util.List;
 public class OrderService {
 
     private final OrderRepository orderRepository;
+    private final PaymentClient paymentClient;
 
-    public OrderService(OrderRepository orderRepository) {
+    public OrderService(OrderRepository orderRepository, PaymentClient paymentClient) {
         this.orderRepository = orderRepository;
+        this.paymentClient = paymentClient;
     }
 
     public OrderResponse createOrder(CreateOrderRequest request) {
@@ -50,7 +55,28 @@ public class OrderService {
 
         Order savedOrder = orderRepository.save(order);
 
-        return mapToResponse(savedOrder);
+        savedOrder.setStatus(OrderStatus.PAYMENT_PROCESSING);
+        savedOrder = orderRepository.save(savedOrder);
+
+        PaymentRequest paymentRequest = new PaymentRequest(
+                savedOrder.getId(),
+                savedOrder.getTotalAmount(),
+                "CREDIT_CARD"
+        );
+
+        PaymentResponse paymentResponse =
+                paymentClient.createPayment(paymentRequest);
+
+        if ("COMPLETED".equals(paymentResponse.paymentStatus())) {
+            savedOrder.setStatus(OrderStatus.PAID);
+        } else {
+            savedOrder.setStatus(OrderStatus.PAYMENT_FAILED);
+        }
+
+        Order finalOrder = orderRepository.save(savedOrder);
+
+        return mapToResponse(finalOrder);
+
     }
 
     public OrderResponse getOrderById(Long id) {

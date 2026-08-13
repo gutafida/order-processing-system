@@ -48,4 +48,20 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(body);
     }
+
+    @ExceptionHandler(InventoryUnavailableException.class)
+    public ResponseEntity<ErrorResponse> handleInventoryUnavailable(
+            InventoryUnavailableException ex,
+            HttpServletRequest request
+    ){
+        ErrorResponse response = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.CONFLICT.value(),
+                HttpStatus.CONFLICT.getReasonPhrase(),
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+
+    }
 }

@@ -1,6 +1,7 @@
 package com.gutafida.orderservice.client.inventory;
 
 import com.gutafida.orderservice.client.inventory.dto.DeductInventoryRequest;
+import com.gutafida.orderservice.client.inventory.dto.ReleaseInventoryRequest;
 import com.gutafida.orderservice.client.inventory.dto.ReserveInventoryRequest;
 import com.gutafida.orderservice.client.inventory.dto.ReserveInventoryResponse;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -18,4 +19,7 @@ public interface InventoryClient {
 
     @PutMapping("/api/inventory/deduct")
     void deductInventory(@RequestBody DeductInventoryRequest request);
+
+    @PutMapping("/api/inventory/release")
+    void releaseInventory(@RequestBody ReleaseInventoryRequest request);
 }

@@ -45,4 +45,13 @@ public class InventoryController {
         return ResponseEntity.ok(inventoryService.deductInventory(request));
     }
 
+    @PutMapping("/release")
+    public ResponseEntity<InventoryResponse> releaseInventory(
+            @Valid @RequestBody ReleaseInventoryRequest request
+    ) {
+        return ResponseEntity.ok(
+                inventoryService.releaseInventory(request)
+        );
+    }
+
 }

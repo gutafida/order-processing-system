@@ -5,6 +5,7 @@ import com.gutafida.orderservice.client.dto.PaymentRequest;
 import com.gutafida.orderservice.client.dto.PaymentResponse;
 import com.gutafida.orderservice.client.inventory.InventoryClient;
 import com.gutafida.orderservice.client.inventory.dto.DeductInventoryRequest;
+import com.gutafida.orderservice.client.inventory.dto.ReleaseInventoryRequest;
 import com.gutafida.orderservice.client.inventory.dto.ReserveInventoryRequest;
 import com.gutafida.orderservice.dto.CreateOrderRequest;
 import com.gutafida.orderservice.dto.OrderItemRequest;
@@ -12,6 +13,7 @@ import com.gutafida.orderservice.dto.OrderResponse;
 import com.gutafida.orderservice.entity.Order;
 import com.gutafida.orderservice.entity.OrderItem;
 import com.gutafida.orderservice.enums.OrderStatus;
+import com.gutafida.orderservice.exception.InventoryUnavailableException;
 import com.gutafida.orderservice.exception.ResourceNotFoundException;
 import com.gutafida.orderservice.repository.OrderRepository;
 import org.springframework.stereotype.Service;
@@ -44,7 +46,12 @@ public class OrderService {
                     itemRequest.productId(),
                     itemRequest.quantity()
             );
-            inventoryClient.reserveInventory(inventoryRequest);
+            try {
+
+                inventoryClient.reserveInventory(inventoryRequest);
+            }catch (Exception e){
+                throw new InventoryUnavailableException("Not enough inventory available for product Id: " + itemRequest.productId());
+            }
 
             BigDecimal subtotal = calculateSubtotal(
                     itemRequest.unitPrice(),
@@ -88,6 +95,14 @@ public class OrderService {
             }
             savedOrder.setStatus(OrderStatus.PAID);
         } else {
+            for(OrderItem item : savedOrder.getItems()){
+                ReleaseInventoryRequest releaseRequest = new ReleaseInventoryRequest(
+                        item.getProductId(),
+                        item.getQuantity()
+                );
+
+                inventoryClient.releaseInventory(releaseRequest);
+            }
             savedOrder.setStatus(OrderStatus.PAYMENT_FAILED);
         }
 

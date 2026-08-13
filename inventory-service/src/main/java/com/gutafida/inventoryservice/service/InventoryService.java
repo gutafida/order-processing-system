@@ -1,7 +1,6 @@
 package com.gutafida.inventoryservice.service;
 
-import com.gutafida.inventoryservice.dto.CreateInventoryRequest;
-import com.gutafida.inventoryservice.dto.InventoryResponse;
+import com.gutafida.inventoryservice.dto.*;
 import com.gutafida.inventoryservice.entity.Inventory;
 import com.gutafida.inventoryservice.exception.ResourceNotFoundException;
 import com.gutafida.inventoryservice.repository.InventoryRepository;
@@ -41,6 +40,41 @@ public class InventoryService {
                 .toList();
     }
 
+    public ReserveInventoryResponse reserveInventory(ReserveInventoryRequest request){
+        Inventory inventory = inventoryRepository.findByProductId(request.productId())
+                .orElseThrow(()-> new ResourceNotFoundException(
+                        "Product not found with product ID: " + request.productId()));
+        int available = inventory.getQuantity() - inventory.getReservedQuantity();
+        if(available < request.quantity()){
+            throw new IllegalStateException("Not enough inventory available");
+        }
+        inventory.setReservedQuantity(inventory.getReservedQuantity() + request.quantity());
+        inventory.setAvailable(inventory.getQuantity() > inventory.getReservedQuantity());
+        inventoryRepository.save(inventory);
+        return new ReserveInventoryResponse(
+                inventory.getProductId(),
+                inventory.getQuantity(),
+                inventory.getReservedQuantity(),
+                true,
+                "Inventory reserved successfully"
+        );
+
+    }
+
+    public InventoryResponse deductInventory(DeductInventoryRequest request){
+        Inventory inventory = inventoryRepository.findByProductId(request.productId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Product not found with product ID: " + request.productId()));
+        if(inventory.getReservedQuantity() < request.quantity()){
+            throw new IllegalStateException("Not enough inventory reserved");
+        }
+        inventory.setQuantity(inventory.getQuantity() - request.quantity());
+        inventory.setReservedQuantity(inventory.getReservedQuantity() - request.quantity());
+        inventory.setAvailable(inventory.getQuantity() - inventory.getReservedQuantity() > 0);
+        Inventory saved = inventoryRepository.save(inventory);
+        return mapToResponse(saved);
+
+    }
 
 
     private InventoryResponse mapToResponse(Inventory inventory) {

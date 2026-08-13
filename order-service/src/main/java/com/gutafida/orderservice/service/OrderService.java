@@ -3,6 +3,9 @@ package com.gutafida.orderservice.service;
 import com.gutafida.orderservice.client.PaymentClient;
 import com.gutafida.orderservice.client.dto.PaymentRequest;
 import com.gutafida.orderservice.client.dto.PaymentResponse;
+import com.gutafida.orderservice.client.inventory.InventoryClient;
+import com.gutafida.orderservice.client.inventory.dto.DeductInventoryRequest;
+import com.gutafida.orderservice.client.inventory.dto.ReserveInventoryRequest;
 import com.gutafida.orderservice.dto.CreateOrderRequest;
 import com.gutafida.orderservice.dto.OrderItemRequest;
 import com.gutafida.orderservice.dto.OrderResponse;
@@ -21,10 +24,12 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final PaymentClient paymentClient;
+    private final InventoryClient inventoryClient;
 
-    public OrderService(OrderRepository orderRepository, PaymentClient paymentClient) {
+    public OrderService(OrderRepository orderRepository, PaymentClient paymentClient, InventoryClient inventoryClient) {
         this.orderRepository = orderRepository;
         this.paymentClient = paymentClient;
+        this.inventoryClient = inventoryClient;
     }
 
     public OrderResponse createOrder(CreateOrderRequest request) {
@@ -35,6 +40,12 @@ public class OrderService {
         order.setStatus(OrderStatus.PENDING);
 
         for (OrderItemRequest itemRequest : request.items()) {
+            ReserveInventoryRequest inventoryRequest = new ReserveInventoryRequest(
+                    itemRequest.productId(),
+                    itemRequest.quantity()
+            );
+            inventoryClient.reserveInventory(inventoryRequest);
+
             BigDecimal subtotal = calculateSubtotal(
                     itemRequest.unitPrice(),
                     itemRequest.quantity()
@@ -68,6 +79,13 @@ public class OrderService {
                 paymentClient.createPayment(paymentRequest);
 
         if ("COMPLETED".equals(paymentResponse.paymentStatus())) {
+            for(OrderItem item : savedOrder.getItems()){
+                DeductInventoryRequest deductRequest = new DeductInventoryRequest(
+                        item.getProductId(),
+                        item.getQuantity()
+                );
+                inventoryClient.deductInventory(deductRequest);
+            }
             savedOrder.setStatus(OrderStatus.PAID);
         } else {
             savedOrder.setStatus(OrderStatus.PAYMENT_FAILED);

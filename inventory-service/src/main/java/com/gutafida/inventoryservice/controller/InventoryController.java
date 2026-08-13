@@ -1,7 +1,6 @@
 package com.gutafida.inventoryservice.controller;
 
-import com.gutafida.inventoryservice.dto.CreateInventoryRequest;
-import com.gutafida.inventoryservice.dto.InventoryResponse;
+import com.gutafida.inventoryservice.dto.*;
 import com.gutafida.inventoryservice.service.InventoryService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -33,6 +32,17 @@ public class InventoryController {
     @GetMapping
     public ResponseEntity<List<InventoryResponse>> getAllInventory(){
        return ResponseEntity.ok(inventoryService.getAllInventory());
+    }
+
+    @PutMapping("/reserve")
+    public ResponseEntity<ReserveInventoryResponse> reserveInventory(@Valid @RequestBody ReserveInventoryRequest request){
+        return ResponseEntity.ok(inventoryService.reserveInventory(request));
+
+    }
+
+    @PutMapping("/deduct")
+    public ResponseEntity<InventoryResponse> deductInventory(@Valid @RequestBody DeductInventoryRequest request){
+        return ResponseEntity.ok(inventoryService.deductInventory(request));
     }
 
 }
